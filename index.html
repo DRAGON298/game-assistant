@@ -5,13 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>المساعد السريع</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; user-select: none; }
         body { background: #0f172a; color: #fff; padding: 15px; }
         .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #334155; }
-        input, button { width: 100%; padding: 12px; border-radius: 8px; border: none; margin-top: 8px; font-size: 15px; }
-        input { background: #0f172a; color: #fff; border: 1px solid #334155; }
-        button { background: #2563eb; color: #fff; font-weight: bold; cursor: pointer; }
-        #chatbox { height: 250px; overflow-y: auto; background: #0f172a; border-radius: 8px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+        input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-top: 8px; font-size: 15px; user-select: text; }
+        
+        /* تصميم الزر التفاهلي كـ div لتجاوز قيود الأزرار في المتصفحات العائمة */
+        .custom-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: #2563eb;
+            color: #fff;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .custom-btn:active { background: #1d4ed8; transform: scale(0.98); }
+
+        #chatbox { height: 230px; overflow-y: auto; background: #0f172a; border-radius: 8px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
         .msg { padding: 8px 12px; border-radius: 8px; max-width: 85%; font-size: 14px; word-break: break-word; }
         .user { background: #2563eb; align-self: flex-start; }
         .bot { background: #334155; align-self: flex-end; }
@@ -23,53 +37,68 @@
     <div class="card">
         <h3>🔑 إعدادات المفتاح</h3>
         <label>مفتاح API Key:</label>
-        <input type="password" id="apiKey" placeholder="ألصق مفتاح Groq هنا" oninput="localStorage.setItem('g_key', this.value)">
+        <input type="password" id="apiKey" placeholder="ألصق مفتاح Groq هنا">
         
         <label>اسم النموذج:</label>
-        <input type="text" id="modelName" value="openai/gpt-oss-120b" oninput="localStorage.setItem('g_model', this.value)">
+        <input type="text" id="modelName" value="openai/gpt-oss-120b">
     </div>
 
     <div class="card">
         <div id="chatbox"></div>
-        <input type="text" id="userInput" placeholder="اكتب سؤالك هنا..." onkeypress="if(event.key==='Enter') sendMsg()">
-        <button onclick="sendMsg()">إرسال 🚀</button>
+        <input type="text" id="userInput" placeholder="اكتب سؤالك هنا..." onkeypress="handleKey(event)">
+        
+        <!-- عنصر زر مخصص يضمن الاستجابة للمس -->
+        <div class="custom-btn" id="sendBtn" onclick="sendMsg()" ontouchstart="sendMsg()">إرسال 🚀</div>
     </div>
 
     <script>
-        // تعبئة البيانات تلقائياً من الذاكرة المحفوظة مسبقاً
-        if(localStorage.getItem('g_key')) {
-            document.getElementById('apiKey').value = localStorage.getItem('g_key');
+        // تحميل القيم من الذاكرة
+        try {
+            if(localStorage.getItem('g_key')) document.getElementById('apiKey').value = localStorage.getItem('g_key');
+            if(localStorage.getItem('g_model')) document.getElementById('modelName').value = localStorage.getItem('g_model');
+        } catch(e) {}
+
+        function handleKey(e) {
+            if (e.key === 'Enter') sendMsg();
         }
-        if(localStorage.getItem('g_model')) {
-            document.getElementById('modelName').value = localStorage.getItem('g_model');
-        }
+
+        let isProcessing = false;
 
         async function sendMsg() {
-            const key = document.getElementById('apiKey').value.trim();
-            const model = document.getElementById('modelName').value.trim() || 'openai/gpt-oss-120b';
-            const input = document.getElementById('userInput');
+            if (isProcessing) return;
+            
+            const keyInput = document.getElementById('apiKey');
+            const modelInput = document.getElementById('modelName');
+            const userInput = document.getElementById('userInput');
             const chatbox = document.getElementById('chatbox');
-            const text = input.value.trim();
+
+            const key = keyInput.value.trim();
+            const model = modelInput.value.trim() || 'openai/gpt-oss-120b';
+            const text = userInput.value.trim();
 
             if (!text) return;
-            if (!key) { 
-                alert('يرجى وضع مفتاح API Key في الأعلى أولاً!'); 
-                return; 
+            if (!key) {
+                alert('يرجى وضع المفتاح أولاً!');
+                return;
             }
 
-            // حفظ احتياطي فوري
-            localStorage.setItem('g_key', key);
-            localStorage.setItem('g_model', model);
+            // حفظ تلقائي محلي
+            try {
+                localStorage.setItem('g_key', key);
+                localStorage.setItem('g_model', model);
+            } catch(e) {}
 
-            // إضافة رسالة المستخدم للشاشة
+            isProcessing = true;
+
+            // عرض رسالة المستخدم
             const userDiv = document.createElement('div');
             userDiv.className = 'msg user';
             userDiv.innerText = text;
             chatbox.appendChild(userDiv);
-            input.value = '';
+            userInput.value = '';
             chatbox.scrollTop = chatbox.scrollHeight;
 
-            // رسالة الانتظار
+            // عرض رسالة الانتظار
             const botDiv = document.createElement('div');
             botDiv.className = 'msg bot';
             botDiv.innerText = 'جاري الرد... ⚡';
@@ -96,15 +125,16 @@
 
                 const data = await response.json();
                 
-                if (data.choices && data.choices[0].message) {
+                if (data.choices && data.choices[0] && data.choices[0].message) {
                     botDiv.innerText = data.choices[0].message.content;
                 } else {
                     botDiv.innerText = 'خطأ: ' + (data.error?.message || 'تأكد من صحة المفتاح');
                 }
             } catch (err) {
                 botDiv.innerText = 'خطأ في الاتصال بالشبكة!';
-                console.error(err);
             }
+
+            isProcessing = false;
             chatbox.scrollTop = chatbox.scrollHeight;
         }
     </script>
