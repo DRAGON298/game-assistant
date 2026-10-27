@@ -27,7 +27,7 @@
         <input type="password" id="apiKey" placeholder="أدخل مفتاح Groq هنا">
         
         <label>اسم النموذج (Model):</label>
-        <input type="text" id="modelName" value="llama3-8b-8192" placeholder="مثال: llama3-8b-8192">
+        <input type="text" id="modelName" value="openai/gpt-oss-120b" placeholder="مثال: openai/gpt-oss-120b">
         
         <button onclick="saveSettings()">حفظ الإعدادات محلياً</button>
     </div>
@@ -39,9 +39,8 @@
     </div>
 
     <script>
-        // استرجاع الإعدادات المحفوظة مسبقاً
         document.getElementById('apiKey').value = localStorage.getItem('groq_key') || '';
-        document.getElementById('modelName').value = localStorage.getItem('groq_model') || 'llama3-8b-8192';
+        document.getElementById('modelName').value = localStorage.getItem('groq_model') || 'openai/gpt-oss-120b';
 
         function saveSettings() {
             const key = document.getElementById('apiKey').value.trim();
@@ -53,7 +52,7 @@
 
         async function sendMsg() {
             const key = localStorage.getItem('groq_key') || document.getElementById('apiKey').value.trim();
-            const model = localStorage.getItem('groq_model') || document.getElementById('modelName').value.trim() || 'llama3-8b-8192';
+            const model = localStorage.getItem('groq_model') || document.getElementById('modelName').value.trim() || 'openai/gpt-oss-120b';
             const input = document.getElementById('userInput');
             const chatbox = document.getElementById('chatbox');
             const text = input.value.trim();
@@ -96,26 +95,3 @@
                 } else {
                     botMsgDiv.innerText = 'خطأ من الخادم: ' + (data.error?.message || 'تأكد من صحة المفتاح');
                 }
-            } catch (err) {
-                if (err.name === 'AbortError') {
-                    botMsgDiv.innerText = '⚠️ انتهت مهلة الاتصال، تحقق من الشبكة.';
-                } else {
-                    botMsgDiv.innerText = 'خطأ في الاتصال بالشبكة!';
-                }
-                console.error(err);
-            }
-            chatbox.scrollTop = chatbox.scrollHeight;
-        }
-
-        function appendMsg(text, sender) {
-            const chatbox = document.getElementById('chatbox');
-            const div = document.createElement('div');
-            div.className = `msg ${sender}`;
-            div.innerText = text;
-            chatbox.appendChild(div);
-            chatbox.scrollTop = chatbox.scrollHeight;
-            return div;
-        }
-    </script>
-</body>
-</html>
