@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المساعد العائم السريع</title>
+    <title>المساعد العائم السريع (Groq)</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
         body { background: #0f172a; color: #fff; padding: 15px; }
@@ -21,54 +21,59 @@
 <body>
 
     <div class="card">
-        <h3>🔑 إعدادات المفتاح</h3>
-        <input type="password" id="apiKey" placeholder="أدخل API Key هنا">
+        <h3>🔑 إعدادات مفتاح Groq</h3>
+        <input type="password" id="apiKey" placeholder="أدخل Groq API Key هنا">
         <button onclick="saveKey()">حفظ المفتاح محلياً</button>
     </div>
 
     <div class="card">
         <div id="chatbox"></div>
         <input type="text" id="userInput" placeholder="اكتب سؤالك السريع..." onkeypress="if(event.key==='Enter') sendMsg()">
-        <button onclick="sendMsg()">إرسال سريع ⚡</button>
+        <button onclick="sendMsg()">إرسال صاروخي ⚡</button>
     </div>
 
     <script>
-        document.getElementById('apiKey').value = localStorage.getItem('gemini_key') || '';
+        document.getElementById('apiKey').value = localStorage.getItem('groq_key') || '';
 
         function saveKey() {
             const key = document.getElementById('apiKey').value.trim();
-            localStorage.setItem('gemini_key', key);
-            alert('تم حفظ المفتاح بنجاح وسرية في متصفحك!');
+            localStorage.setItem('groq_key', key);
+            alert('تم حفظ مفتاح Groq بنجاح وسرية في متصفحك!');
         }
 
         async function sendMsg() {
-            const key = localStorage.getItem('gemini_key') || document.getElementById('apiKey').value.trim();
+            const key = localStorage.getItem('groq_key') || document.getElementById('apiKey').value.trim();
             const input = document.getElementById('userInput');
             const chatbox = document.getElementById('chatbox');
             const text = input.value.trim();
 
             if (!text) return;
-            if (!key) { alert('يرجى إدخال API Key وحفظه أولاً!'); return; }
+            if (!key) { alert('يرجى إدخال Groq API Key وحفظه أولاً!'); return; }
 
             appendMsg(text, 'user');
             input.value = '';
 
-            const botMsgDiv = appendMsg('جاري التفكير...⚡', 'bot');
+            const botMsgDiv = appendMsg('جاري الرد الفوري...⚡', 'bot');
 
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-                // تم التحديث إلى النموذج المدعوم رسمياً
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`, {
+                // الاتصال بـ Groq API باستخدام نموذج Llama السريع جداً
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${key}`
+                    },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: text }] }],
-                        generationConfig: {
-                            maxOutputTokens: 200,
-                            temperature: 0.4
-                        }
+                        model: "llama-3.1-8b-instant",
+                        messages: [
+                            { role: "system", content: "أنت مساعد ذكي للألعاب، أجب باختصار وسرعة." },
+                            { role: "user", content: text }
+                        ],
+                        max_tokens: 200,
+                        temperature: 0.4
                     }),
                     signal: controller.signal
                 });
@@ -76,8 +81,8 @@
                 clearTimeout(timeoutId);
                 const data = await response.json();
                 
-                if (data.candidates && data.candidates[0].content.parts[0].text) {
-                    botMsgDiv.innerText = data.candidates[0].content.parts[0].text;
+                if (data.choices && data.choices[0].message && data.choices[0].message.content) {
+                    botMsgDiv.innerText = data.choices[0].message.content;
                 } else {
                     botMsgDiv.innerText = 'خطأ من الخادم: ' + (data.error?.message || 'تأكد من صحة المفتاح');
                 }
