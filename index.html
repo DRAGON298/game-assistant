@@ -1,0 +1,632 @@
+html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>المساعد الذكي العائم - Floating AI Assistant</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Tajawal for Arabic typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+                body {
+            font-family: 'Tajawal', sans-serif;
+            background: #090d16;
+            color: #f3f4f6;
+            overflow-y: auto !important;
+            touch-action: manipulation;
+            padding-bottom: 100px !important;
+        }
+        
+        /* Glassmorphism styling */
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Neon Glow Effects */
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+        }
+        .glow-purple {
+            box-shadow: 0 0 25px rgba(147, 51, 234, 0.4);
+        }
+        .glow-emerald {
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 10px;
+        }
+
+        /* Floating Button Animation */
+        @keyframes float-pulse {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-6px) scale(1.03); }
+        }
+        .animate-float {
+            animation: float-pulse 3s infinite ease-in-out;
+        }
+
+        /* Mic Pulse Animation when active */
+        @keyframes mic-listening {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        .mic-active {
+            animation: mic-listening 1.5s infinite;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col justify-between select-none overflow-hidden relative">
+
+    <!-- Ambient Background Lighting -->
+    <div class="absolute top-10 right-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-10 left-10 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div class="h-full w-full flex flex-col max-w-md mx-auto relative p-3">
+
+        <!-- HEADER BAR -->
+        <header class="glass-panel rounded-2xl p-3 flex items-center justify-between mb-2 z-10 shadow-lg">
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md glow-cyan">
+                    <i class="fa-solid fa-robot text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-gray-100 flex items-center gap-2">
+                        المساعد العائم
+                        <span id="api-status-badge" class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block animate-pulse" title="متصل"></span>
+                    </h1>
+                    <p class="text-xs text-cyan-400 font-medium" id="mode-subtitle">الوضع القياسي الذكي</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2 space-x-reverse">
+                <button id="settings-toggle-btn" class="w-9 h-9 rounded-xl glass-card flex items-center justify-center text-gray-300 hover:text-white hover:bg-white/10 active:scale-95 transition">
+                    <i class="fa-solid fa-sliders text-sm"></i>
+                </button>
+                <button id="clear-chat-btn" class="w-9 h-9 rounded-xl glass-card flex items-center justify-center text-gray-300 hover:text-red-400 hover:bg-white/10 active:scale-95 transition" title="مسح المحادثة">
+                    <i class="fa-solid fa-trash-can text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- SETTINGS PANEL (Hidden by default) -->
+        <div id="settings-panel" class="hidden glass-panel rounded-2xl p-4 mb-2 z-20 shadow-2xl transition-all border border-cyan-500/30">
+            <h2 class="text-sm font-bold text-cyan-300 mb-2 flex items-center gap-2">
+                <i class="fa-solid fa-key"></i> إعدادات المفتاح والنموذج
+            </h2>
+            <p class="text-xs text-gray-400 mb-3">أدخل مفتاح Gemini API الخاص بك لتسريع ومواكبة الأوامر الصونية والتحليل البصري.</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-gray-300 mb-1">Gemini API Key:</label>
+                    <input type="password" id="api-key-input" placeholder="AIzaSy..." class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-300 mb-1">اختر النموذج المطلوب:</label>
+                    <select id="model-select" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-500">
+                        <option value="gemini-3.8-flash">Gemini 3.8 Flash (موصى به - سريعة جداً)</option>
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash Preview</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                    <label class="text-xs text-gray-300 flex items-center gap-2">
+                        <input type="checkbox" id="auto-tts-toggle" checked class="rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-0">
+                        قراءة الإجابات صوتياً تلقائياً
+                    </label>
+                    <button id="save-settings-btn" class="bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-md transition active:scale-95">
+                        حفظ الإعدادات
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAMING & COMMAND QUICK TOOLBAR -->
+        <div class="grid grid-cols-3 gap-2 mb-2">
+            <button id="game-mode-btn" class="glass-card p-2 rounded-xl flex items-center justify-center gap-2 text-xs text-amber-300 hover:bg-amber-500/10 active:scale-95 border border-amber-500/20 transition">
+                <i class="fa-solid fa-gamepad text-sm"></i>
+                <span class="font-bold">العب عني / تحليل</span>
+            </button>
+            <button id="phone-cmd-btn" class="glass-card p-2 rounded-xl flex items-center justify-center gap-2 text-xs text-purple-300 hover:bg-purple-500/10 active:scale-95 border border-purple-500/20 transition">
+                <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+                <span class="font-bold">أوامر الهاتف</span>
+            </button>
+            <button id="vision-screenshot-btn" class="glass-card p-2 rounded-xl flex items-center justify-center gap-2 text-xs text-cyan-300 hover:bg-cyan-500/10 active:scale-95 border border-cyan-500/20 transition">
+                <i class="fa-solid fa-eye text-sm"></i>
+                <span class="font-bold">تحليل شاشة</span>
+            </button>
+        </div>
+
+        <!-- CHAT MESSAGES CONTAINER -->
+        <main id="chat-container" class="flex-1 glass-panel rounded-2xl p-3 overflow-y-auto space-y-3 mb-2 shadow-inner">
+            <!-- Welcome Message -->
+            <div class="flex items-start gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-cyan-600/30 border border-cyan-500/40 flex items-center justify-center text-cyan-300 flex-shrink-0 text-sm">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="glass-card rounded-2xl rounded-tr-none p-3 max-w-[85%] text-xs leading-relaxed text-gray-200 border border-cyan-500/20">
+                    <p class="font-bold text-cyan-300 mb-1">مرحباً بك يا صديقي! 👋</p>
+                    <p>أنا مساعدك الذكي العائم جاهز لتنفيذ الأوامر، التحدث معك صوتياً باللغة العربية، أو تحليل اللعبة الشاشية مباشرة!</p>
+                    <div class="mt-2 text-[10px] text-gray-400 bg-slate-900/50 p-2 rounded-lg border border-white/5">
+                        💡 اضغط زر <i class="fa-solid fa-microphone text-emerald-400"></i> للتحدث، أو <i class="fa-solid fa-gamepad text-amber-400"></i> للعب التلقائي وتحليل الألعاب.
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- IMAGE PREVIEW BAR (When screenshot/image attached) -->
+        <div id="image-preview-container" class="hidden glass-card rounded-xl p-2 mb-2 flex items-center justify-between border border-cyan-500/30">
+            <div class="flex items-center gap-2">
+                <img id="image-preview" class="w-10 h-10 object-cover rounded-lg border border-slate-700" src="" alt="المعاينة">
+                <div>
+                    <p class="text-xs font-bold text-cyan-300">تم إرفاق صورة الشاشة</p>
+                    <p class="text-[10px] text-gray-400">جاهز للتحليل بواسطة الذكاء الاصطناعي</p>
+                </div>
+            </div>
+            <button id="remove-image-btn" class="w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs hover:bg-red-500 hover:text-white transition">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- CHAT INPUT & VOICE CONTROL PANEL -->
+        <footer class="glass-panel rounded-2xl p-2 z-10 shadow-lg">
+            <form id="chat-form" class="flex items-center gap-2">
+                <!-- Hidden file input for screenshots/images -->
+                <input type="file" id="image-file-input" accept="image/*" class="hidden">
+                
+                <button type="button" id="attach-img-btn" class="w-10 h-10 rounded-xl glass-card flex items-center justify-center text-gray-400 hover:text-cyan-400 hover:bg-white/10 active:scale-95 transition flex-shrink-0" title="إرفاق لقطة شاشة">
+                    <i class="fa-solid fa-paperclip text-sm"></i>
+                </button>
+
+                <!-- Microphone Button for STT -->
+                <button type="button" id="mic-btn" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md hover:opacity-90 active:scale-95 transition flex-shrink-0" title="اضغط للتحدث صوتياً">
+                    <i class="fa-solid fa-microphone text-sm"></i>
+                </button>
+
+                <!-- Text Input -->
+                <input type="text" id="user-input" placeholder="اكتب سؤالك أو أمرك هنا..." class="flex-1 bg-slate-900/90 border border-slate-700/80 rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-cyan-500 transition">
+
+                <!-- Send Button -->
+                <button type="submit" id="send-btn" class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center text-white shadow-md glow-cyan hover:opacity-90 active:scale-95 transition flex-shrink-0">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </footer>
+    </div>
+
+    <!-- FLOATING WIDGET BUTTON (ALWAYS VISIBLE OVER APPS/CANVAS) -->
+    <div id="floating-widget" class="fixed top-20 left-4 z-50 cursor-pointer touch-none animate-float">
+        <div id="floating-btn" class="w-14 h-14 rounded-full bg-gradient-to-tr from-cyan-500 via-blue-600 to-purple-600 flex items-center justify-center text-white shadow-2xl glow-purple border-2 border-white/20 active:scale-90 transition">
+            <i class="fa-solid fa-robot text-xl"></i>
+            <!-- Small indicator dot -->
+            <span class="absolute top-0 right-0 w-4 h-4 rounded-full bg-emerald-500 border-2 border-slate-900"></span>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // DOM Elements
+        const floatingWidget = document.getElementById('floating-widget');
+        const floatingBtn = document.getElementById('floating-btn');
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const micBtn = document.getElementById('mic-btn');
+        const attachImgBtn = document.getElementById('attach-img-btn');
+        const imageFileInput = document.getElementById('image-file-input');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const removeImageBtn = document.getElementById('remove-image-btn');
+        
+        const settingsToggleBtn = document.getElementById('settings-toggle-btn');
+        const settingsPanel = document.getElementById('settings-panel');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const modelSelect = document.getElementById('model-select');
+        const autoTtsToggle = document.getElementById('auto-tts-toggle');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const clearChatBtn = document.getElementById('clear-chat-btn');
+        
+        const gameModeBtn = document.getElementById('game-mode-btn');
+        const phoneCmdBtn = document.getElementById('phone-cmd-btn');
+        const visionScreenshotBtn = document.getElementById('vision-screenshot-btn');
+        const modeSubtitle = document.getElementById('mode-subtitle');
+
+        // State variables
+        let apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
+        let selectedModel = localStorage.getItem('GEMINI_MODEL') || 'gemini-3.8-flash';
+        let isAutoTTS = localStorage.getItem('AUTO_TTS') !== 'false';
+        let attachedBase64Image = null;
+        let isListening = false;
+        let recognition = null;
+        let synth = window.speechSynthesis;
+
+        // Load Initial Settings
+        apiKeyInput.value = apiKey;
+        modelSelect.value = selectedModel;
+        autoTtsToggle.checked = isAutoTTS;
+
+        // Toggle Settings Panel
+        settingsToggleBtn.addEventListener('click', () => {
+            settingsPanel.classList.toggle('hidden');
+        });
+
+        // Save Settings
+        saveSettingsBtn.addEventListener('click', () => {
+            apiKey = apiKeyInput.value.trim();
+            selectedModel = modelSelect.value;
+            isAutoTTS = autoTtsToggle.checked;
+
+            localStorage.setItem('GEMINI_API_KEY', apiKey);
+            localStorage.setItem('GEMINI_MODEL', selectedModel);
+            localStorage.setItem('AUTO_TTS', isAutoTTS);
+
+            settingsPanel.classList.add('hidden');
+            appendSystemMessage('تم حفظ الإعدادات بنجاح بنماذج ومفاتيح النظام الجديد! ⚡');
+        });
+
+        // Clear Chat
+        clearChatBtn.addEventListener('click', () => {
+            chatContainer.innerHTML = '';
+            appendSystemMessage('تم مسح سجل المحادثة. كيف يمكنني مساعدتك الآن؟');
+        });
+
+        // Handle Floating Widget Dragging & Toggling
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        floatingWidget.addEventListener('touchstart', (e) => {
+            isDragging = false;
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            const rect = floatingWidget.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+        }, { passive: true });
+
+        floatingWidget.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                isDragging = true;
+                floatingWidget.style.left = `${initialLeft + dx}px`;
+                floatingWidget.style.top = `${initialTop + dy}px`;
+            }
+        }, { passive: true });
+
+        floatingWidget.addEventListener('click', (e) => {
+            if (!isDragging) {
+                // Focus input or animate floating reaction
+                userInput.focus();
+                floatingBtn.classList.add('scale-125');
+                setTimeout(() => floatingBtn.classList.remove('scale-125'), 300);
+            }
+        });
+
+        // Web Speech API - Speech To Text (Arabic)
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'ar-SA'; // Arabic Language
+
+            recognition.onstart = () => {
+                isListening = true;
+                micBtn.classList.add('mic-active', 'from-red-600', 'to-rose-500');
+                micBtn.classList.remove('from-emerald-600', 'to-teal-500');
+                userInput.placeholder = "جاري الاستماع لصوتك باللغة العربية...";
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                userInput.value = transcript;
+                stopListening();
+                // Send automatically after speech input
+                setTimeout(() => {
+                    chatForm.dispatchEvent(new Event('submit'));
+                }, 400);
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                stopListening();
+                appendSystemMessage('تعذر التقاط الصوت بدقة. يرجى إعادة التحدث أو الكتابة.');
+            };
+
+            recognition.onend = () => {
+                stopListening();
+            };
+        } else {
+            micBtn.style.display = 'none';
+            console.warn('Speech Recognition not supported in this browser.');
+        }
+
+        function stopListening() {
+            isListening = false;
+            micBtn.classList.remove('mic-active', 'from-red-600', 'to-rose-500');
+            micBtn.classList.add('from-emerald-600', 'to-teal-500');
+            userInput.placeholder = "اكتب سؤالك أو أمرك هنا...";
+        }
+
+        micBtn.addEventListener('click', () => {
+            if (!recognition) return;
+            if (isListening) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        });
+
+        // Image Attachment Handling
+        attachImgBtn.addEventListener('click', () => imageFileInput.click());
+
+        imageFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    attachedBase64Image = evt.target.result;
+                    imagePreview.src = attachedBase64Image;
+                    imagePreviewContainer.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeImageBtn.addEventListener('click', () => {
+            attachedBase64Image = null;
+            imageFileInput.value = '';
+            imagePreviewContainer.classList.add('hidden');
+        });
+
+        // Quick Preset Actions
+        gameModeBtn.addEventListener('click', () => {
+            modeSubtitle.textContent = 'وضع الألعاب والتفاعل الذكي 🎮';
+            userInput.value = "العب عني في هذه اللعبة وقدم لي خطوة الحركة القادمة بناءً على الشاشة.";
+            if (!attachedBase64Image) {
+                appendSystemMessage("⚠️ يُفضل إرفاق لقطة شاشة للعبة عبر زر (إرفاق) ليصل الذكاء الاصطناعي إلى قرار دقيق!");
+            }
+        });
+
+        phoneCmdBtn.addEventListener('click', () => {
+            modeSubtitle.textContent = 'وضع أوامر أندرويد 📱';
+            userInput.value = "كيف يمكنني تطبيق أمر أتمتة على هذا الهاتف لفتح يوتيوب وتنفيذ السحب التلقائي؟";
+        });
+
+        visionScreenshotBtn.addEventListener('click', () => {
+            modeSubtitle.textContent = 'وضع تحليل الصور والبصريات 👁️';
+            attachImgBtn.click();
+        });
+
+        // Chat Form Submission
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+
+            if (!text && !attachedBase64Image) return;
+
+            // Render User Message
+            appendUserMessage(text, attachedBase64Image);
+
+            // Clear Input
+            userInput.value = '';
+            const imgDataToSend = attachedBase64Image;
+            // Clear Attached Image
+            attachedBase64Image = null;
+            imagePreviewContainer.classList.add('hidden');
+            imageFileInput.value = '';
+
+            // Show Loading Indicator
+            const loadingId = appendLoadingMessage();
+
+            try {
+                const aiResponse = await fetchGeminiResponse(text, imgDataToSend);
+                removeLoadingMessage(loadingId);
+                appendAIMessage(aiResponse);
+
+                // Auto Read Response if enabled
+                if (isAutoTTS && aiResponse) {
+                    speakText(aiResponse);
+                }
+            } catch (err) {
+                removeLoadingMessage(loadingId);
+                console.error(err);
+                appendSystemMessage(`حدث خطأ أثناء الاتصال بالذكاء الاصطناعي: ${err.message}`);
+            }
+        });
+
+        // API Handler for Gemini
+        async function fetchGeminiResponse(promptText, base64Img) {
+            const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`;
+
+            const parts = [];
+            if (promptText) {
+                parts.push({ text: promptText });
+            }
+
+            if (base64Img) {
+                // Extract mime type and raw base64 string
+                const match = base64Img.match(/^data:(image\/\w+);base64,(.+)$/);
+                if (match) {
+                    parts.push({
+                        inlineData: {
+                            mimeType: match[1],
+                            data: match[2]
+                        }
+                    });
+                }
+            }
+
+            const payload = {
+                contents: [{
+                    parts: parts
+                }],
+                systemInstruction: {
+                    parts: [{
+                        text: "أنت مساعد ذكي عائم (Floating AI Assistant) مصمم للهواتف الذكية. تجيب باللغة العربية بدقة، إيجاز، وبأسلوب ذكي ومباشر مناسب للشاشات الصغيرة والألعاب وأوامر الهاتف."
+                    }]
+                }
+            };
+
+            let retries = 3;
+            let delay = 2000;
+
+            for (let i = 0; i < retries; i++) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 503) {
+                        // High demand error - retry with delay
+                        if (i < retries - 1) {
+                            await new Promise(res => setTimeout(res, delay));
+                            delay *= 2;
+                            continue;
+                        }
+                    }
+
+                    if (!response.ok) {
+                        const errData = await response.json();
+                        throw new Error(errData.error?.message || `خطأ استجابة (${response.status})`);
+                    }
+
+                    const data = await response.json();
+                    const candidate = data.candidates?.[0];
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        return candidate.content.parts[0].text;
+                    } else {
+                        return "لم يتم استلام رد نصي من النموذج.";
+                    }
+                } catch (e) {
+                    if (i === retries - 1) throw e;
+                }
+            }
+        }
+
+        // Render Functions
+        function appendUserMessage(text, imgData) {
+            const div = document.createElement('div');
+            div.className = "flex items-start gap-2.5 justify-end";
+            
+            let imgHTML = imgData ? `<img src="${imgData}" class="w-32 h-32 object-cover rounded-xl mb-2 border border-cyan-400/40">` : '';
+
+            div.innerHTML = `
+                <div class="glass-card bg-cyan-950/40 rounded-2xl rounded-tl-none p-3 max-w-[85%] text-xs leading-relaxed text-cyan-100 border border-cyan-500/30 shadow-sm">
+                    ${imgHTML}
+                    <p>${escapeHTML(text)}</p>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-cyan-600 flex items-center justify-center text-white flex-shrink-0 text-sm shadow-md">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function appendAIMessage(text) {
+            const div = document.createElement('div');
+            div.className = "flex items-start gap-2.5";
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white flex-shrink-0 text-sm shadow-md glow-purple">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="glass-card rounded-2xl rounded-tr-none p-3 max-w-[85%] text-xs leading-relaxed text-gray-100 border border-purple-500/20 shadow-sm relative group">
+                    <p class="whitespace-pre-wrap">${escapeHTML(text)}</p>
+                    <button class="tts-speak-btn mt-2 text-[10px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1 font-bold">
+                        <i class="fa-solid fa-volume-high"></i> استماع بصوت المساعد
+                    </button>
+                </div>
+            `;
+            
+            // TTS Button Event
+            const ttsBtn = div.querySelector('.tts-speak-btn');
+            ttsBtn.addEventListener('click', () => speakText(text));
+
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function appendSystemMessage(text) {
+            const div = document.createElement('div');
+            div.className = "flex justify-center my-1";
+            div.innerHTML = `
+                <div class="bg-slate-900/80 border border-slate-700/60 rounded-xl px-3 py-1.5 text-[11px] text-gray-300 text-center max-w-[90%]">
+                    ${escapeHTML(text)}
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function appendLoadingMessage() {
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = "flex items-start gap-2.5";
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-cyan-400 flex-shrink-0 text-sm">
+                    <i class="fa-solid fa-spinner animate-spin"></i>
+                </div>
+                <div class="glass-card rounded-2xl rounded-tr-none p-3 text-xs text-gray-400 border border-white/5 animate-pulse">
+                    جاري التفكير وتحليل البيانات...
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return id;
+        }
+
+        function removeLoadingMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        // Text To Speech (TTS)
+        function speakText(text) {
+            if (!synth) return;
+            synth.cancel(); // Stop any ongoing speech
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ar-SA'; // Arabic voice
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+
+            synth.speak(utterance);
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
